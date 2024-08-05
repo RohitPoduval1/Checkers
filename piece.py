@@ -1,5 +1,6 @@
 import pygame 
 from constants import GRID_BOX_SIZE
+from coordinate import Coordinate
 
 class Piece:
     """Represents a piece in checkers.

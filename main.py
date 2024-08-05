@@ -1,5 +1,5 @@
 import pygame
-from board import EMPTY, Board
+from board import EMPTY, Board, Coordinate
 
 
 WINDOW_SIZE = 800  # one numbers since WINDOW should be square. Represents an 800x800 screen
@@ -32,6 +32,7 @@ def main():
     clock = pygame.time.Clock()
     game_board = Board()
 
+    # 1x per game
     game_board.draw_grid(WINDOW)
     game_board.draw_starting_pieces(WINDOW)
 
@@ -55,17 +56,25 @@ def main():
 
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                mouse_row = get_board_position_from_click(mouse_y)
-                mouse_col = get_board_position_from_click(mouse_x)
+                mouse_coords = Coordinate(
+                    row=get_board_position_from_click(mouse_y),
+                    col=get_board_position_from_click(mouse_x)
+                )
+
                 # only attempt to get pieces from non empty board squares
-                if game_board.get_piece(mouse_row, mouse_col) is not EMPTY:
-                    game_board.selected_piece = game_board.get_piece(mouse_row, mouse_col)
+                if game_board.get_piece(mouse_coords) is not EMPTY:
+                    game_board.selected_piece = game_board.get_piece(mouse_coords)
+
 
             if event.type == pygame.MOUSEBUTTONUP:
+                # Move the piece on the square that the mouse was released
                 mouse_x, mouse_y = pygame.mouse.get_pos()
-                mouse_row = get_board_position_from_click(mouse_y)
-                mouse_col = get_board_position_from_click(mouse_x)
-                game_board.move(game_board.selected_piece, mouse_row, mouse_col, WINDOW)
+                mouse_coords = Coordinate(
+                    row=get_board_position_from_click(mouse_y),
+                    col=get_board_position_from_click(mouse_x)
+                )
+                game_board.move(game_board.selected_piece, mouse_coords, WINDOW)
+
 
             if event.type == pygame.MOUSEMOTION:
                 pass
