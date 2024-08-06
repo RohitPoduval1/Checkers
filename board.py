@@ -152,7 +152,8 @@ class Board:
             piece (Piece): the piece to move
             destination (Coordinate): the destination of the piece
         """
-        if self.is_valid_move(piece, destination):
+        self.all_valid_moves(piece)
+        if destination in self.valid_moves:
             start = Coordinate(piece.row, piece.col)
             # Clear the board at the old position
             self.set_board_at(start, EMPTY)
@@ -203,9 +204,9 @@ class Board:
 
         return False
 
-    def all_valid_moves(self, piece: Piece) -> set:
-        """Given a piece, returns all valid moves that piece has available to it"""
-        self.valid_moves = set()
+    def all_valid_moves(self, piece: Piece) -> set[Coordinate]:
+        """Given a valid piece, returns all valid moves that piece has available to it"""
+        self.valid_moves = set()  # we do not want carryover from a previous piece's valid moves
         start = Coordinate(piece.row, piece.col)
 
         directions = []
@@ -216,19 +217,21 @@ class Board:
             directions.append((-1, -1))  # Up-left
             directions.append((-1, 1))   # Up-right
 
+        adjacent_moves = set()
         # Check adjacent moves
         for row_diff, col_diff in directions:
             destination = Coordinate(start.row + row_diff, start.col + col_diff)
             if self.is_valid_move(piece, destination):
-                self.valid_moves.add(destination)
+                adjacent_moves.add(destination)
 
+        jump_moves = set()
         # Check for jumps
         def find_jumps(piece, start, visited):
             for row_diff, col_diff in directions:
                 jump_destination = Coordinate(start.row + 2*row_diff, start.col + 2*col_diff)
 
                 if jump_destination not in visited and self.is_valid_move(piece, jump_destination):
-                    self.valid_moves.add(jump_destination)
+                    jump_moves.add(jump_destination)
                     visited.add(jump_destination)
 
                     # Temporarily update piece's position to check for further jumps
@@ -247,5 +250,11 @@ class Board:
 
         # start finding jumps from the initial position
         find_jumps(piece, start, set())
+
+        # The official rules of Checkers states that if a jump is possible, it must be made
+        if len(jump_moves) > 0:
+            self.valid_moves = jump_moves
+        else:
+            self.valid_moves = adjacent_moves
 
         return self.valid_moves

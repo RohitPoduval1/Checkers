@@ -35,7 +35,6 @@ def main():
     # 1x per game
     game_board.draw_grid(WINDOW)
     game_board.place_starting_pieces()
-    game_board.draw(WINDOW)
 
     running = True
     while running:
@@ -49,12 +48,15 @@ def main():
             if event.type == pygame.QUIT:
                 running = False
 
+
             if event.type == pygame.KEYDOWN:
 
                 # Use ESC key to end the game
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
+
+            # Choose the piece to be moved by either clicking or dragging
             if event.type == pygame.MOUSEBUTTONDOWN:
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 mouse_coords = Coordinate(
@@ -67,24 +69,31 @@ def main():
                     game_board.all_valid_moves(game_board.selected_piece)
 
 
+            # Move the piece on the square that the mouse was released
             if event.type == pygame.MOUSEBUTTONUP:
-                # Move the piece on the square that the mouse was released
                 mouse_x, mouse_y = pygame.mouse.get_pos()
                 mouse_coords = Coordinate(
                     row=get_board_position_from_click(mouse_y),
                     col=get_board_position_from_click(mouse_x)
                 )
 
-                game_board.move(game_board.selected_piece, mouse_coords)
-                game_board.selected_piece = EMPTY
-                game_board.valid_moves = set()
+                if game_board.get_piece(mouse_coords) is EMPTY:
+                    game_board.move(game_board.selected_piece, destination=mouse_coords)
+
+                    # Reset the variables since the move has been made
+                    game_board.selected_piece = EMPTY
+                    game_board.valid_moves = set()
 
 
             if event.type == pygame.MOUSEMOTION:
                 pass
 
 
+        # Draw the board first and then the valid moves so that they properly
+        # show up on the board
         game_board.draw(WINDOW)
+
+        # the valid moves are only drawn when the mouse is held down on a piece
         game_board.draw_valid_moves(WINDOW)
         pygame.display.update()
 
