@@ -34,7 +34,8 @@ def main():
 
     # 1x per game
     game_board.draw_grid(WINDOW)
-    game_board.draw_starting_pieces(WINDOW)
+    game_board.place_starting_pieces()
+    game_board.draw(WINDOW)
 
     running = True
     while running:
@@ -60,10 +61,10 @@ def main():
                     row=get_board_position_from_click(mouse_y),
                     col=get_board_position_from_click(mouse_x)
                 )
-
                 # only attempt to get pieces from non empty board squares
                 if game_board.get_piece(mouse_coords) is not EMPTY:
                     game_board.selected_piece = game_board.get_piece(mouse_coords)
+                    game_board.all_valid_moves(game_board.selected_piece)
 
 
             if event.type == pygame.MOUSEBUTTONUP:
@@ -73,13 +74,20 @@ def main():
                     row=get_board_position_from_click(mouse_y),
                     col=get_board_position_from_click(mouse_x)
                 )
-                game_board.move(game_board.selected_piece, mouse_coords, WINDOW)
+
+                game_board.move(game_board.selected_piece, mouse_coords)
+                game_board.selected_piece = EMPTY
+                game_board.valid_moves = set()
 
 
             if event.type == pygame.MOUSEMOTION:
                 pass
 
+
+        game_board.draw(WINDOW)
+        game_board.draw_valid_moves(WINDOW)
         pygame.display.update()
+
 
     pygame.quit()
 

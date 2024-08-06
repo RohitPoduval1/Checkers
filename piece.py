@@ -1,5 +1,5 @@
 import pygame 
-from constants import GRID_BOX_SIZE
+from constants import GRID_BOX_SIZE, PIECE_BLACK, PIECE_RED
 from coordinate import Coordinate
 
 class Piece:
@@ -35,6 +35,11 @@ class Piece:
             self.is_king == other_piece.is_king
         )
 
+    def __str__(self) -> str:
+        color_str = "Black" if self.color == PIECE_BLACK else "Red"
+        king_str = "King" if self.is_king else "Piece"
+        return f"{color_str} {king_str} at {Coordinate(self.row, self.col)}"
+
     @property
     def row(self) -> int:
         """Getter for row attribute"""
@@ -68,7 +73,7 @@ class Piece:
         self.is_king = is_king
 
     def king(self) -> None:
-        """Make a piece a king"""
+        """Make a piece a king """
         self.is_king = True
 
     def draw(self, window: pygame.Surface) -> None:
