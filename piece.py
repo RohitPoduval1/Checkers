@@ -35,6 +35,10 @@ class Piece:
             self.is_king == other_piece.is_king
         )
 
+    def __hash__(self) -> int:
+        color_int = 1 if self.color == "PIECE_BLACK" else -1
+        return self.row + self.col + color_int
+
     def __str__(self) -> str:
         color_str = "Black" if self.color == PIECE_BLACK else "Red"
         king_str = "King" if self.is_king else "Piece"
@@ -68,26 +72,20 @@ class Piece:
     def col(self, c: int) -> None:
         self._col = c
 
-    @is_king.setter
-    def is_king(self, is_king: bool) -> None:
-        self.is_king = is_king
-
     def king(self) -> None:
-        """Make a piece a king """
-        self.is_king = True
+        """Make a piece a king if the conditions are met"""
+        if (self.color == PIECE_BLACK and self.row == 7) or (self.color == PIECE_RED and self.row == 0):
+            self._is_king = True
 
     def draw(self, window: pygame.Surface) -> None:
         """Draws the piece on the specified window"""
-        if self.is_king:
-            # TODO: Draw a different image for a kinged piece
-            pass
-        else:
-            pygame.draw.circle(
-                surface=window,
-                color=self._COLOR,
-                center=(
-                    self._col * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE,  # use col to find x coord
-                    self._row * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE   # use row to find y coord
-                ),
-                radius=Piece.RADIUS
-            )
+        # TODO: Draw a different image for a kinged piece
+        pygame.draw.circle(
+            surface=window,
+            color=self._COLOR,
+            center=(
+                self._col * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE,  # use col to find x coord
+                self._row * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE   # use row to find y coord
+            ),
+            radius=Piece.RADIUS
+        )

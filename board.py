@@ -16,9 +16,11 @@ class Board:
     """
     def __init__(self):
         self.SIZE = 8
-        self.board = [[EMPTY for _ in range(self.SIZE)] for _ in range(self.SIZE)]
+        self._board = [[EMPTY for _ in range(self.SIZE)] for _ in range(self.SIZE)]
         self._selected_piece: Piece = EMPTY
-        self.valid_moves: set[Coordinate] = set()
+        self._valid_moves: set[Coordinate] = set()
+        self.black_pieces_left = 12
+        self.red_pieces_left = 12
 
     def __str__(self) -> str:
         board_with_strings = [[" " for _ in range(self.SIZE)] for _ in range(self.SIZE)]
@@ -50,12 +52,15 @@ class Board:
 
     @selected_piece.setter
     def selected_piece(self, piece):
-        """If piece is a valid piece, it makes it the selected_piece"""
         self._selected_piece = piece
 
     def select_piece(self, coord: Coordinate) -> None:
-        """Gets the piece at the given coordinates on the board (if valid) and makes it
-        the selected piece"""
+        """
+        Make the piece at the given coordinates the selected piece if it is valid
+
+        Args:
+            coord (Coordinate): the location on the board to select
+        """
         if self.get_piece(coord) is EMPTY:
             raise ValueError("There is no piece at (row, col) so no piece could be selected.")
 
@@ -67,18 +72,36 @@ class Board:
         # Made it through all the checks so the piece can be selected
         self._selected_piece = self.get_piece(coord)
 
+    def reset_valid_moves(self):
+        self._valid_moves = set()
+
     def get_piece(self, coord: Coordinate) -> Piece:
         """Returns the piece at the given coordinates' row and col if it exists.
         Otherwise, based on the initialization of the board, it will return EMPTY"""
-        return self.board[coord.row][coord.col]
+        return self._board[coord.row][coord.col]
 
-    def set_board_at(self, coord: Coordinate, piece) -> None:
+    def set_board_at(self, coord: Coordinate, piece: Piece) -> None:
         """Sets board at the given coordinates to piece"""
-        self.board[coord.row][coord.col] = piece
+        self._board[coord.row][coord.col] = piece
+
+
+    def place_starting_pieces(self):
+        """Internally populates an empty board with the starting positions of the pieces"""
+        # Draw the black pieces at the top of the board (the first 3 rows)
+        for row in range(3):
+            for col in range(self.SIZE):
+                if (row + col) % 2 == 1:  # Place on alternating squares
+                    self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_BLACK))
+
+        # Draw the red pieces at the bottom of the board (the last 3 rows)
+        for row in range(self.SIZE - 3, self.SIZE):
+            for col in range(self.SIZE):
+                if (row + col) % 2 == 1:  # Place on alternating squares
+                    self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_RED))
 
     def draw_grid(self, window: pygame.Surface):
-        """Draws a black and red checkerboard on the given window.
-        To be called once at the beginning of the game
+        """
+        Draws a black and red checkerboard on the given window.
         
         Args:
             window (pygame.Surface): the window to draw the grid on
@@ -93,20 +116,6 @@ class Board:
                     rect=(r * GRID_BOX_SIZE, c * GRID_BOX_SIZE, GRID_BOX_SIZE, GRID_BOX_SIZE)
                 )
 
-    def place_starting_pieces(self):
-        """Populates an empty board with the starting positions of the pieces"""
-        # Draw the black pieces at the top of the board (the first 3 rows)
-        for row in range(3):
-            for col in range(self.SIZE):
-                if (row + col) % 2 == 1:  # Place on alternating squares
-                    self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_BLACK))
-
-        # Draw the red pieces at the bottom of the board (the last 3 rows)
-        for row in range(self.SIZE - 3, self.SIZE):
-            for col in range(self.SIZE):
-                if (row + col) % 2 == 1:  # Place on alternating squares
-                    self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_RED))
-
     def draw(self, window):
         """Draws the current board, assumming the background is already drawn"""
         self.draw_grid(window)
@@ -114,11 +123,14 @@ class Board:
             for col in range(self.SIZE):
                 coords = Coordinate(row, col)
                 if self.get_piece(coords) is not EMPTY:
+                    # king any pieces since draw() is called constantly in the main game loop
+                    self.get_piece(coords).king()
+
                     self.get_piece(coords).draw(window)
 
     def draw_valid_moves(self, window: pygame.Surface) -> None:
         """Given a set of valid moves, draw a green circle on the board at each valid move to show it is valid"""
-        for valid_move in self.valid_moves:
+        for valid_move in self._valid_moves:
             pygame.draw.circle(
                 surface=window,
                 color=(0, 240, 0),
@@ -145,7 +157,7 @@ class Board:
             )
         )
 
-    def move(self, piece, destination: Coordinate):
+    def move(self, piece: Piece, destination: Coordinate) -> bool:
         """Moves piece to destination and updates the board internally. 
 
         Args: 
@@ -153,9 +165,9 @@ class Board:
             destination (Coordinate): the destination of the piece
         """
         self.all_valid_moves(piece)
-        if destination in self.valid_moves:
+        if destination in self._valid_moves:
             start = Coordinate(piece.row, piece.col)
-            # Clear the board at the old position
+            # clear the board at the old position
             self.set_board_at(start, EMPTY)
 
             # Update that piece's position with the new row and column
@@ -164,9 +176,30 @@ class Board:
 
             # update the board to reflect the piece's new position
             self.set_board_at(destination, piece)
+            print("Valid move made")
 
+            # Removing the jumped piece for jump moves
+            row_diff = destination.row - start.row
+            col_diff = destination.col - start.col
+            if abs(row_diff) == 2 and abs(col_diff) == 2:  # if the move is a jump move
+                middle_piece_coords = Coordinate(start.row + row_diff//2, start.col + col_diff//2)
+                if self.get_piece(middle_piece_coords).color == PIECE_BLACK:
+                    self.black_pieces_left -= 1
+                else:
+                    self.red_pieces_left -= 1
+                self.set_board_at(middle_piece_coords, EMPTY)
 
-    def is_valid_move(self, piece: Piece, destination: Coordinate) -> bool:
+            return True
+        return False
+
+    def _is_valid_move(self, piece: Piece, destination: Coordinate) -> bool:
+        """
+        Returns whether moving piece to destination is valid while doing necessary error checking.
+
+        Args:
+            piece (Piece): the piece to move
+            destination (Piece): the destination to valid
+        """
         start = Coordinate(piece.row, piece.col)
 
         # ERROR CHECKING
@@ -182,11 +215,12 @@ class Board:
         row_diff = destination.row - start.row
         col_diff = destination.col - start.col
 
-        # For black movement, row_diff must be positive since black moves down, col diff can be either
+        # For black movement, row_diff must be positive since black moves down
+        # while col diff can be either for both black and red since you can move left or right
         if (piece.color == PIECE_BLACK or piece.is_king) and row_diff == 1 and abs(col_diff) == 1:
             return True
 
-        # For red movement, row_diff must be negative since red moves down, col_diff can be either
+        # For red movement, row_diff must be negative since red moves down
         if (piece.color == PIECE_RED or piece.is_king) and row_diff == -1 and abs(col_diff) == 1:
             return True
 
@@ -204,57 +238,102 @@ class Board:
 
         return False
 
-    def all_valid_moves(self, piece: Piece) -> set[Coordinate]:
-        """Given a valid piece, returns all valid moves that piece has available to it"""
-        self.valid_moves = set()  # we do not want carryover from a previous piece's valid moves
-        start = Coordinate(piece.row, piece.col)
 
+    def find_single_jumps(self, piece: Piece) -> set[Coordinate]:
+        valid_jump_moves: set[Coordinate] = set()
+        jump_directions = []
+
+        if piece.color == PIECE_BLACK or piece.is_king:
+            jump_directions.append( (2, -2) )  # down-left
+            jump_directions.append( (2, 2) )   # down-right
+        if piece.color == PIECE_RED or piece.is_king:
+            jump_directions.append( (-2, -2) )  # up-left
+            jump_directions.append( (-2, 2) )   # up-right
+
+        for row_diff, col_diff in jump_directions:
+            jump_destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
+            if self._is_valid_move(piece, jump_destination):
+                valid_jump_moves.add(jump_destination)
+
+        return valid_jump_moves
+
+
+    def find_adjacent_moves(self, piece: Piece) -> set[Coordinate]:
+        """Given a valid piece, return all possible adjacent moves"""
         directions = []
         if piece.color == PIECE_BLACK or piece.is_king:
-            directions.append((1, -1))  # Down-left
-            directions.append((1, 1))   # Down-right
+            directions.append((1, -1))  # down-left
+            directions.append((1, 1))   # down-right
         if piece.color == PIECE_RED or piece.is_king:
-            directions.append((-1, -1))  # Up-left
-            directions.append((-1, 1))   # Up-right
+            directions.append((-1, -1))  # up-left
+            directions.append((-1, 1))   # up-right
 
         adjacent_moves = set()
         # Check adjacent moves
         for row_diff, col_diff in directions:
-            destination = Coordinate(start.row + row_diff, start.col + col_diff)
-            if self.is_valid_move(piece, destination):
+            destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
+            if self._is_valid_move(piece, destination):
                 adjacent_moves.add(destination)
 
-        jump_moves = set()
-        # Check for jumps
-        def find_jumps(piece, start, visited):
-            for row_diff, col_diff in directions:
-                jump_destination = Coordinate(start.row + 2*row_diff, start.col + 2*col_diff)
+        return adjacent_moves
 
-                if jump_destination not in visited and self.is_valid_move(piece, jump_destination):
-                    jump_moves.add(jump_destination)
-                    visited.add(jump_destination)
-
-                    # Temporarily update piece's position to check for further jumps
-                    original_position = Coordinate(piece.row, piece.col)
-                    self.set_board_at(original_position, EMPTY)
-                    self.set_board_at(jump_destination, piece)
-                    piece.row, piece.col = jump_destination.row, jump_destination.col
-
-                    # check for further jumps
-                    find_jumps(piece, jump_destination, visited)
-
-                    # Revert the temporary move
-                    piece.row, piece.col = original_position.row, original_position.col
-                    self.set_board_at(jump_destination, EMPTY)
-                    self.set_board_at(original_position, piece)
-
-        # start finding jumps from the initial position
-        find_jumps(piece, start, set())
+    def all_valid_moves(self, piece: Piece) -> set[Coordinate]:
+        """Given a valid piece, returns all valid moves that piece has available to it"""
+        adjacent_moves = self.find_adjacent_moves(piece)
+        jump_moves = self.find_single_jumps(piece)
 
         # The official rules of Checkers states that if a jump is possible, it must be made
         if len(jump_moves) > 0:
-            self.valid_moves = jump_moves
+            self._valid_moves = jump_moves
         else:
-            self.valid_moves = adjacent_moves
+            self._valid_moves = adjacent_moves
 
-        return self.valid_moves
+        return self._valid_moves
+
+    def pieces_with_valid_moves(self, color) -> set[Piece]:
+        # TODO: Add to README detailed explanation on mandatory jumping
+        """
+        Return a set of Pieces of color that have valid moves available to it. This is important
+        because the rules of checkers states that if there exists a piece on the board with a jump
+        available to it, it must make the jump. If multiple pieces exist with jumps available, then
+        the player can choose.
+
+        Args:
+            color: the color of the piece to search for valid moves, either PIECE_BLACK or PIECE_RED
+
+        Returns: a set of Pieces with valid moves available to it
+        """
+        pieces = set()
+
+        # See if there are any pieces on the board matching the passed in color
+        # that have available jump moves
+        for r in range(8):
+            for c in range(8):
+                piece = self.get_piece(Coordinate(r, c))
+                if (
+                    piece is not EMPTY and
+                    len(self.find_single_jumps(piece)) > 0 and
+                    piece.color == color
+                ):
+                    pieces.add(piece)
+
+        # There are no pieces with jumps available so just get pieces with valid adjacent moves
+        if len(pieces) == 0:
+            for r in range(8):
+                for c in range(8):
+                    piece = self.get_piece(Coordinate(r, c))
+                    if (
+                        piece is not EMPTY and
+                        len(self.all_valid_moves(piece)) > 0 and
+                        piece.color == color
+                    ):
+                        pieces.add(piece)
+        return pieces
+
+
+    def is_game_over(self) -> bool:
+        return self.black_pieces_left == 0 or self.red_pieces_left == 0
+
+    def winner(self) -> str:
+        """Return the winner of the game, 'B' for black or 'R' for red"""
+        return "B" if self.red_pieces_left == 0 else "R"
