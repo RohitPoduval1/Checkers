@@ -10,24 +10,31 @@ WINDOW = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
 pygame.display.set_caption("Checkers")
 
 
-def get_board_position_from_click(mouse_coord: int):
-    """Given a mouse coordinate, return the corresponding position on the board.
+def switch_player(current_turn: str, game_board):
+    game_board.selected_piece = EMPTY
+    game_board.reset_valid_moves()
+    return "Black" if current_turn == "Red" else "Red"
+
+
+def get_board_position_from_click(mouse_coords: tuple[int, int]):
+    """Given a mouse coordinate, return the corresponding position on the board as a Coordinate.
     
     Args:
-        mouse_cord (int): either the mouse's x position or y position
+        mouse_coords (tuple[int, int]): should be passing in pygame.mouse.get_pos()
+        mouse_coords[0] is the row of the mouse and mouse_coords[1] is the column
 
     Returns:
-        the board's row if mouse_y is given; board's column if mouse_x is given
-        mouse_row = get_board_position_from_click(mouse_y)
-        mouse_col = get_board_position_from_click(mouse_x)
+        a Coordinate object representing which tile the mouse is on
     """
-    # The hundreds digit of the mouse coordinates, mouse_x and mouse_y
-    # correspond to the column and row respectively the mouse is located in
+    # The hundreds digit of the mouse coordinates, mouse_x and mouse_y, correspond to the column
+    # and row respectively the mouse is located in.
 
-    # subtract whatever needed to make a number cleanly divisible by 100
-    # divide that number by 100 to get the hundreds digit
-    return (mouse_coord - (mouse_coord % 100)) // 100 if mouse_coord > 100 else 0
+    # Subtract whatever needed to make a number cleanly divisible by 100.
+    # Divide that number by 100 to get the hundreds digit.
+    row = (mouse_coords[1] - (mouse_coords[1] % 100)) // 100 if mouse_coords[1] > 100 else 0
+    col = (mouse_coords[0] - (mouse_coords[0] % 100)) // 100 if mouse_coords[0] > 100 else 0
 
+    return Coordinate(row, col)
 
 def main():
     """Function where main game loop occurs. All classes come together in this function."""
@@ -63,11 +70,7 @@ def main():
 
             # Choose the piece to be moved by either clicking or dragging
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                mouse_coords = Coordinate(
-                    row=get_board_position_from_click(mouse_y),
-                    col=get_board_position_from_click(mouse_x)
-                )
+                mouse_coords = get_board_position_from_click(pygame.mouse.get_pos())
 
                 # Conditions for selecting a piece
                 mouse_piece = game_board.get_piece(mouse_coords)
@@ -86,11 +89,7 @@ def main():
 
             # Move the piece to the square where the mouse was released
             if event.type == pygame.MOUSEBUTTONUP:
-                mouse_x, mouse_y = pygame.mouse.get_pos()
-                mouse_coords = Coordinate(
-                    row=get_board_position_from_click(mouse_y),
-                    col=get_board_position_from_click(mouse_x)
-                )
+                mouse_coords = get_board_position_from_click(pygame.mouse.get_pos())
 
                 if game_board.selected_piece is not EMPTY:
                     start = Coordinate(game_board.selected_piece.row, game_board.selected_piece.col)
@@ -104,18 +103,12 @@ def main():
                                 possible_jump_moves = game_board.find_single_jumps(game_board.selected_piece)
                                 if possible_jump_moves:
                                     game_board._valid_moves = possible_jump_moves
-                                    break  # Exit the loop to allow another jump
-                                current_turn = "Black" if current_turn == "Red" else "Red"
-                                print("Switched players")
-                                game_board.selected_piece = EMPTY
-                                game_board.reset_valid_moves()
+                                    break  # exit the loop to allow another jump
+                                current_turn = switch_player(current_turn, game_board)
                                 break
                         else:
                             # Adjacent move, switch turn
-                            current_turn = "Black" if current_turn == "Red" else "Red"
-                            print("Switched players")
-                            game_board.selected_piece = EMPTY
-                            game_board.reset_valid_moves()
+                            current_turn = switch_player(current_turn, game_board)
 
         # Draw the board first and then the valid moves so that they properly show up on the board
         game_board.draw(WINDOW)

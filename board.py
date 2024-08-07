@@ -121,12 +121,28 @@ class Board:
         self.draw_grid(window)
         for row in range(self.SIZE):
             for col in range(self.SIZE):
-                coords = Coordinate(row, col)
-                if self.get_piece(coords) is not EMPTY:
+                piece = self.get_piece(Coordinate(row, col))
+                if self.selected_piece is not EMPTY and self.selected_piece is piece:
+                    self._highlight_selected_piece_tile(window)
+                if piece is not EMPTY:
                     # king any pieces since draw() is called constantly in the main game loop
-                    self.get_piece(coords).king()
+                    piece.king()
+                    piece.draw(window)
 
-                    self.get_piece(coords).draw(window)
+    def _highlight_selected_piece_tile(self, window: pygame.Surface) -> None:
+        HIGHLIGHT_SQUARE_SIZE = GRID_BOX_SIZE * 0.8
+
+        # Draw the highlight box in the center of the tile that the selected_piece is in
+        pygame.draw.rect(
+            surface=window,
+            color=(255, 223, 0),
+            rect=(
+                self.selected_piece.col*GRID_BOX_SIZE + (GRID_BOX_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
+                self.selected_piece.row*GRID_BOX_SIZE + (GRID_BOX_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
+                HIGHLIGHT_SQUARE_SIZE,
+                HIGHLIGHT_SQUARE_SIZE
+            )
+        )
 
     def draw_valid_moves(self, window: pygame.Surface) -> None:
         """Given a set of valid moves, draw a green circle on the board at each valid move to show it is valid"""
@@ -176,7 +192,6 @@ class Board:
 
             # update the board to reflect the piece's new position
             self.set_board_at(destination, piece)
-            print("Valid move made")
 
             # Removing the jumped piece for jump moves
             row_diff = destination.row - start.row
