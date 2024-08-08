@@ -45,7 +45,7 @@ def main():
     game_board.draw_grid(WINDOW)
     game_board.place_starting_pieces()
 
-    current_turn = "Black"
+    current_turn = "Black"  # Black always goes first
     running = True
     while running:
         # ensure that the game runs at the same rate regardless of machine performance
@@ -77,13 +77,15 @@ def main():
                 if (
                     mouse_piece is not EMPTY and  # select non-empty tiles on the board
 
-                    # select the piece that matches the current_turn color
+                    # Select the piece that matches the current_turn color
                     (current_turn == "Black" and mouse_piece.color == PIECE_BLACK or
                     current_turn == "Red" and mouse_piece.color == PIECE_RED) and
 
                     mouse_piece in game_board.pieces_with_valid_moves(mouse_piece.color)
                 ):
                     game_board.selected_piece = game_board.get_piece(mouse_coords)
+                    game_board.selected_piece.king()
+
                     # populate valid_moves so they can be shown to the player
                     game_board.all_valid_moves(game_board.selected_piece)
 
@@ -101,10 +103,16 @@ def main():
                             # Handle multiple jumps
                             while True:
                                 possible_jump_moves = game_board.find_single_jumps(game_board.selected_piece)
+
+                                print("All valid moves: ")
+                                [print(move) for move in game_board.all_valid_moves(game_board.selected_piece)]
+
+                                print("All jump moves: ")
+                                [print(move) for move in possible_jump_moves]
                                 if possible_jump_moves:
                                     game_board._valid_moves = possible_jump_moves
-                                    break  # exit the loop to allow another jump
-                                current_turn = switch_player(current_turn, game_board)
+                                else:
+                                    current_turn = switch_player(current_turn, game_board)
                                 break
                         else:
                             # Adjacent move, switch turn

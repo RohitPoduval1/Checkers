@@ -72,6 +72,10 @@ class Piece:
     def col(self, c: int) -> None:
         self._col = c
 
+    @is_king.setter
+    def is_king(self, k):
+        self._is_king = k
+
     def king(self) -> None:
         """Make a piece a king if the conditions are met"""
         if (self.color == PIECE_BLACK and self.row == 7) or (self.color == PIECE_RED and self.row == 0):

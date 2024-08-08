@@ -123,13 +123,11 @@ class Board:
             for col in range(self.SIZE):
                 piece = self.get_piece(Coordinate(row, col))
                 if self.selected_piece is not EMPTY and self.selected_piece is piece:
-                    self._highlight_selected_piece_tile(window)
+                    self.__highlight_selected_piece_tile(window)
                 if piece is not EMPTY:
-                    # king any pieces since draw() is called constantly in the main game loop
-                    piece.king()
                     piece.draw(window)
 
-    def _highlight_selected_piece_tile(self, window: pygame.Surface) -> None:
+    def __highlight_selected_piece_tile(self, window: pygame.Surface) -> None:
         HIGHLIGHT_SQUARE_SIZE = GRID_BOX_SIZE * 0.8
 
         # Draw the highlight box in the center of the tile that the selected_piece is in
@@ -157,22 +155,6 @@ class Board:
                 radius=15
             )
 
-    def _erase_at(self, coord: Coordinate, window: pygame.Surface) -> None:
-        """To be called when moving a piece. Updates the board visually to reflect that a piece
-        has been moved by drawing the corresponding colored square where the piece was.
-        """
-        square_color = BOARD_RED if (coord.row + coord.col) % 2 == 0 else BOARD_BLACK
-        pygame.draw.rect(
-            surface=window,
-            color=square_color,
-            rect=(
-                coord.col * GRID_BOX_SIZE,
-                coord.row * GRID_BOX_SIZE,
-                GRID_BOX_SIZE,
-                GRID_BOX_SIZE
-            )
-        )
-
     def move(self, piece: Piece, destination: Coordinate) -> bool:
         """Moves piece to destination and updates the board internally. 
 
@@ -183,16 +165,20 @@ class Board:
         self.all_valid_moves(piece)
         if destination in self._valid_moves:
             start = Coordinate(piece.row, piece.col)
-            # clear the board at the old position
-            self.set_board_at(start, EMPTY)
+
+            # ALL MOVES
+            self.set_board_at(start, EMPTY)  # clear the board at the old position
 
             # Update that piece's position with the new row and column
-            piece.row = destination.row
-            piece.col = destination.col
+            piece.row, piece.col = destination.row, destination.col
 
             # update the board to reflect the piece's new position
             self.set_board_at(destination, piece)
 
+            # now that it is at the new position, check if it is a king
+            piece.king()
+
+            # JUMP MOVES
             # Removing the jumped piece for jump moves
             row_diff = destination.row - start.row
             col_diff = destination.col - start.col
@@ -272,7 +258,6 @@ class Board:
 
         return valid_jump_moves
 
-
     def find_adjacent_moves(self, piece: Piece) -> set[Coordinate]:
         """Given a valid piece, return all possible adjacent moves"""
         directions = []
@@ -297,7 +282,7 @@ class Board:
         adjacent_moves = self.find_adjacent_moves(piece)
         jump_moves = self.find_single_jumps(piece)
 
-        # The official rules of Checkers states that if a jump is possible, it must be made
+        # if a jump is possible, it must be made
         if len(jump_moves) > 0:
             self._valid_moves = jump_moves
         else:
@@ -339,7 +324,7 @@ class Board:
                     piece = self.get_piece(Coordinate(r, c))
                     if (
                         piece is not EMPTY and
-                        len(self.all_valid_moves(piece)) > 0 and
+                        len(self.find_adjacent_moves(piece)) > 0 and
                         piece.color == color
                     ):
                         pieces.add(piece)
