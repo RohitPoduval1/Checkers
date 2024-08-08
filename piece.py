@@ -76,10 +76,18 @@ class Piece:
     def is_king(self, k):
         self._is_king = k
 
-    def king(self) -> None:
-        """Make a piece a king if the conditions are met"""
-        if (self.color == PIECE_BLACK and self.row == 7) or (self.color == PIECE_RED and self.row == 0):
+    def king(self) -> bool:
+        """
+        Make a piece a king if it is not already and the conditions are met.
+
+        Returns:
+            True if the piece was made king for the first time, False if the conditions were not
+            met or the piece is already a king.
+        """
+        if ((self.color == PIECE_BLACK and self.row == 7) or (self.color == PIECE_RED and self.row == 0)) and not self.is_king:
             self._is_king = True
+            return self._is_king
+        return False
 
     def draw(self, window: pygame.Surface) -> None:
         """Draws the piece on the specified window"""

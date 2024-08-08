@@ -19,8 +19,16 @@ class Board:
         self._board = [[EMPTY for _ in range(self.SIZE)] for _ in range(self.SIZE)]
         self._selected_piece: Piece = EMPTY
         self._valid_moves: set[Coordinate] = set()
-        self.black_pieces_left = 12
-        self.red_pieces_left = 12
+
+        self.black_regular_left = 12
+        self.black_kings_left = 0
+        self.black_pieces_left = self.black_regular_left + self.black_kings_left
+
+        self.red_regular_left = 12
+        self.red_kings_left = 0
+        self.red_pieces_left = self.red_regular_left + self.red_kings_left
+
+        self._current_turn = "BLACK"
 
 
     def __str__(self) -> str:
@@ -52,10 +60,19 @@ class Board:
         """Getter for selected_piece attribute"""
         return self._selected_piece
 
-
     @selected_piece.setter
     def selected_piece(self, piece):
         self._selected_piece = piece
+
+
+    @property
+    def current_turn(self):
+        """Getter for current_turn attribute"""
+        return self._current_turn
+
+    @current_turn.setter
+    def current_turn(self, next_turn: str):
+        self._current_turn = next_turn
 
 
     def select_piece(self, coord: Coordinate) -> None:
@@ -225,7 +242,17 @@ class Board:
 
             # update the board to reflect the piece's new position
             self.set_board_at(destination, piece)
-            piece.king()  # check if it is a king at the new position
+
+            if piece.king():  # if the piece is a newly made king
+                # Update the number of pieces left
+                if piece.color == PIECE_BLACK:
+                    self.black_regular_left -= 1
+                    self.black_kings_left += 1
+                else:
+                    self.red_regular_left -= 1
+                    self.red_kings_left += 1
+            self.black_pieces_left = self.black_regular_left + self.black_kings_left
+            self.red_pieces_left = self.red_regular_left + self.red_kings_left
 
             # JUMP MOVES
             row_diff, col_diff = destination.row - start.row, destination.col - start.col
@@ -233,9 +260,19 @@ class Board:
             if abs(row_diff) == 2 and abs(col_diff) == 2:
                 # Adjust the respective piece count and remove the jumped piece from the board
                 middle_piece_coords = Coordinate(start.row + row_diff//2, start.col + col_diff//2)
-                if self.get_piece(middle_piece_coords).color == PIECE_BLACK:
+                middle_piece = self.get_piece(middle_piece_coords)
+
+                if middle_piece.color == PIECE_BLACK:
+                    if middle_piece.is_king:
+                        self.black_kings_left -= 1
+                    else:
+                        self.black_regular_left -= 1
                     self.black_pieces_left -= 1
                 else:
+                    if middle_piece.is_king:
+                        self.red_kings_left -= 1
+                    else:
+                        self.red_regular_left -= 1
                     self.red_pieces_left -= 1
                 self.set_board_at(middle_piece_coords, EMPTY)
 

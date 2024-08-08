@@ -13,7 +13,7 @@ pygame.display.set_caption("Checkers")
 def switch_player(current_turn: str, game_board):
     game_board.selected_piece = EMPTY
     game_board.reset_valid_moves()
-    return "Black" if current_turn == "Red" else "Red"
+    return "BLACK" if current_turn == "RED" else "RED"
 
 
 def get_board_position_from_click(mouse_coords: tuple[int, int]):
@@ -45,7 +45,6 @@ def main():
     game_board.draw_grid(WINDOW)
     game_board.place_starting_pieces()
 
-    current_turn = "Black"  # Black always goes first
     running = True
     while running:
         # ensure that the game runs at the same rate regardless of machine performance
@@ -55,7 +54,7 @@ def main():
         is_game_over = game_board.is_game_over()
         if is_game_over:
             running = False
-            winner = "Black" if game_board.winner() == "B" else "Red"
+            winner = "BLACK" if game_board.winner() == "B" else "RED"
             print(f"The game is over! The winner is {winner}")
 
         for event in pygame.event.get():
@@ -78,8 +77,8 @@ def main():
                     mouse_piece is not EMPTY and  # select non-empty tiles on the board
 
                     # Select the piece that matches the current_turn color
-                    (current_turn == "Black" and mouse_piece.color == PIECE_BLACK or
-                    current_turn == "Red" and mouse_piece.color == PIECE_RED) and
+                    (game_board.current_turn == "BLACK" and mouse_piece.color == PIECE_BLACK or
+                    game_board.current_turn == "RED" and mouse_piece.color == PIECE_RED) and
 
                     mouse_piece in game_board.pieces_with_valid_moves(mouse_piece.color)
                 ):
@@ -102,21 +101,15 @@ def main():
                         if abs(row_diff) == 2 and abs(col_diff) == 2:
                             # Handle multiple jumps
                             while True:
-                                possible_jump_moves = game_board.find_single_jumps(game_board.selected_piece)
-
-                                print("All valid moves: ")
-                                [print(move) for move in game_board.all_valid_moves(game_board.selected_piece)]
-
-                                print("All jump moves: ")
-                                [print(move) for move in possible_jump_moves]
+                                possible_jump_moves = game_board.all_single_jumps(game_board.selected_piece)
                                 if possible_jump_moves:
                                     game_board._valid_moves = possible_jump_moves
                                 else:
-                                    current_turn = switch_player(current_turn, game_board)
+                                    game_board.current_turn = switch_player(game_board.current_turn, game_board)
                                 break
                         else:
                             # Adjacent move, switch turn
-                            current_turn = switch_player(current_turn, game_board)
+                            game_board.current_turn = switch_player(game_board.current_turn, game_board)
 
         # Draw the board first and then the valid moves so that they properly show up on the board
         game_board.draw(WINDOW)
