@@ -1,8 +1,8 @@
 import pygame
 from board import EMPTY, Board, Coordinate
-from ai_player import AI
 from constants import PIECE_BLACK
 from constants import PIECE_RED
+from ai_player import AI
 
 
 WINDOW_SIZE = 800  # one numbers since WINDOW should be square. Represents an 800x800 screen
@@ -59,12 +59,13 @@ def main():
             winner = "BLACK" if game_board.winner() == "B" else "RED"
             print(f"The game is over! The winner is {winner}")
 
+        # """
         if game_board.current_turn == "RED":
             ai_piece, ai_destination = ai.minimax(game_board)
-            print(f"{ai_piece} to {ai_destination}")
             game_board.move(ai_piece, ai_destination)
-            print("Done with AI turn")
-            switch_player(game_board.current_turn, game_board)
+            game_board.switch_player()
+        # """
+
 
         for event in pygame.event.get():
             # Close button was pressed in top corner
@@ -76,55 +77,45 @@ def main():
                 if event.key == pygame.K_ESCAPE:
                     running = False
 
-            # Choose the piece to be moved by either clicking or dragging
+            # Handle clicks for both selecting and moving pieces
             if event.type == pygame.MOUSEBUTTONDOWN:
-                mouse_coords = get_board_position_from_click(pygame.mouse.get_pos())
+                mouse_board_coords = get_board_position_from_click(pygame.mouse.get_pos())
+                mouse_piece = game_board.get_piece(mouse_board_coords)
 
-                # Conditions for selecting a piece
-                mouse_piece = game_board.get_piece(mouse_coords)
                 if (
-                    mouse_piece is not EMPTY and  # select non-empty tiles on the board
-
-                    # Select the piece that matches the current_turn color
-                    (game_board.current_turn == "BLACK" and mouse_piece.color == PIECE_BLACK or
-                    game_board.current_turn == "RED" and mouse_piece.color == PIECE_RED) and
-
-                    mouse_piece in game_board.pieces_with_valid_moves(mouse_piece.color)
+                    # Changing the selected piece after you've already selected a piece by
+                    # clicking on another valid piece.
+                    (
+                        mouse_piece is not EMPTY and
+                        (game_board.current_turn == "BLACK" and mouse_piece.color == PIECE_BLACK or
+                        game_board.current_turn == "RED" and mouse_piece.color == PIECE_RED) and
+                        mouse_piece in game_board.pieces_with_valid_moves(mouse_piece.color)
+                    )
                 ):
-                    game_board.selected_piece = game_board.get_piece(mouse_coords)
-                    game_board.selected_piece.king()
+                    print("selected_piece")
+                    game_board.selected_piece = mouse_piece
+                    game_board.get_valid_moves(game_board.selected_piece)
 
-                    # populate valid_moves so they can be shown to the player
-                    game_board.all_valid_moves(game_board.selected_piece)
-
-            # Move the piece to the square where the mouse was released
-            if event.type == pygame.MOUSEBUTTONUP:
-                mouse_coords = get_board_position_from_click(pygame.mouse.get_pos())
-
-                if game_board.selected_piece is not EMPTY:
-                    start = Coordinate(game_board.selected_piece.row, game_board.selected_piece.col)
-                    if game_board.move(game_board.selected_piece, mouse_coords):
-                        row_diff = mouse_coords.row - start.row
-                        col_diff = mouse_coords.col - start.col
-
-                        # The move is an adjacent move
-                        if not (abs(row_diff) and abs(col_diff) == 2):
-                            game_board.current_turn = switch_player(game_board.current_turn, game_board)
-                            break
-
-                        # The move is a jump move so handle multiple jumps if they are possible
-                        while True:
-                            possible_jump_moves = game_board.all_single_jumps(game_board.selected_piece)
-                            if possible_jump_moves:
-                                game_board._valid_moves = possible_jump_moves
+                elif game_board.selected_piece is not EMPTY and mouse_piece is EMPTY:
+                    move_type = game_board.get_move_type(game_board.selected_piece, mouse_board_coords)
+                    if game_board.move(game_board.selected_piece, mouse_board_coords):
+                        if move_type == "JUMP":
+                            while True:
+                                possible_jump_moves = game_board.get_single_jumps(game_board.selected_piece)
+                                if possible_jump_moves:
+                                    game_board._valid_moves = possible_jump_moves
+                                else:
+                                    game_board.switch_player()
                                 break
+                        else:
+                            game_board.switch_player()
+                    else:
+                        game_board.selected_piece = None
 
-                            game_board.current_turn = switch_player(game_board.current_turn, game_board)
-                            break
 
         # Draw the board first and then the valid moves so that they properly show up on the board
         game_board.draw(WINDOW)
-        # the valid moves are only drawn when the mouse is held down on a piece
+        # the valid moves are only drawn when a piece is selected
         game_board.draw_valid_moves(WINDOW)
         pygame.display.update()
 
@@ -133,3 +124,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
