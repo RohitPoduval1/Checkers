@@ -138,7 +138,7 @@ class Board:
                     self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_RED))
 
 
-    def draw_grid(self, window: pygame.Surface) -> None:
+    def draw_checkerboard(self, window: pygame.Surface) -> None:
         """
         Draws a black and red checkerboard on the given window.
         
@@ -146,9 +146,10 @@ class Board:
             window (pygame.Surface): the window to draw the grid on
         """
         window.fill(BOARD_BLACK)
+
+        # Draw alternating red squares on the black board to make a checkerboard
         for r in range(self.SIZE):
             for c in range(r % 2, self.SIZE, 2):
-                # Draw alternating red squares on the black board
                 pygame.draw.rect(
                     surface=window,
                     color=BOARD_RED,
@@ -163,16 +164,20 @@ class Board:
 
     def draw(self, window: pygame.Surface) -> None:
         """
-        Draws the current board, assumming the background is already drawn
+        Draw the current board
         
         Args:
             window (pygame.Surface): the window to draw the grid on
         """
-        self.draw_grid(window)
+
+        # Get rid of existing drawings by drawing the checkerboard on top,
+        # effectively giving us a clean slate to work with
+        self.draw_checkerboard(window)
+
         for row in range(self.SIZE):
             for col in range(self.SIZE):
                 piece = self.get_piece(Coordinate(row, col))
-                if self.selected_piece is not EMPTY and self.selected_piece is piece:
+                if self.selected_piece is not EMPTY and piece is self.selected_piece:
                     self.__highlight_selected_piece_tile(window)
                 if piece is not EMPTY:
                     piece.draw(window)
@@ -221,7 +226,7 @@ class Board:
 
     def move(self, piece: Piece, destination: Coordinate) -> bool:
         """
-        Moves piece to destination and updates the board internally. 
+        Moves the valid piece to the valid destination and updates the board internally. 
 
         Args: 
             piece (Piece): the piece to move
@@ -256,27 +261,25 @@ class Board:
 
             # JUMP MOVES
             row_diff, col_diff = destination.row - start.row, destination.col - start.col
-            # if the move is a jump move
-            if abs(row_diff) == 2 and abs(col_diff) == 2:
-                # Adjust the respective piece count and remove the jumped piece from the board
+            if abs(row_diff) == 2 and abs(col_diff) == 2:  # if the move is a jump move
                 middle_piece_coords = Coordinate(start.row + row_diff//2, start.col + col_diff//2)
                 middle_piece = self.get_piece(middle_piece_coords)
 
                 if middle_piece.color == PIECE_BLACK:
+                    self.black_pieces_left -= 1
                     if middle_piece.is_king:
                         self.black_kings_left -= 1
                     else:
                         self.black_regular_left -= 1
-                    self.black_pieces_left -= 1
                 else:
+                    self.red_pieces_left -= 1
                     if middle_piece.is_king:
                         self.red_kings_left -= 1
                     else:
                         self.red_regular_left -= 1
-                    self.red_pieces_left -= 1
                 self.set_board_at(middle_piece_coords, EMPTY)
 
-            return True  # since the move was valid
+            return True
 
         return False
 
@@ -294,7 +297,6 @@ class Board:
         """
         start = Coordinate(piece.row, piece.col)
 
-        # ERROR CHECKING
         if (
             # the start or destination is not a valid coordinate
             (not (start.is_in_bounds() and destination.is_in_bounds())) or
@@ -311,9 +313,10 @@ class Board:
         # row_diff must be positive for black since it moves down and negative for red since it
         # moves up while col diff can be either (+, -) for black and red since they can move
         # left or right.
-        if (
-            ((piece.color == PIECE_BLACK or piece.is_king) and row_diff == 1 and abs(col_diff) == 1) or
-            ((piece.color == PIECE_RED or piece.is_king) and row_diff == -1 and abs(col_diff) == 1)
+        if abs(col_diff) == 1 and (
+            (piece.is_king) or
+            (piece.color == PIECE_BLACK and row_diff == 1) or
+            (piece.color == PIECE_RED and row_diff == -1)
         ):
             return True
 
@@ -325,9 +328,10 @@ class Board:
         # Ensure there is an opponent's piece in the middle
         if middle_piece is not EMPTY and middle_piece.color != piece.color:
             # If the jump is valid given the piece (color, is_king), return True
-            if (
-                ((piece.color == PIECE_BLACK or piece.is_king) and row_diff == 2 and abs(col_diff) == 2) or
-                ((piece.color == PIECE_RED or piece.is_king) and row_diff == -2 and abs(col_diff) == 2)
+            if abs(col_diff) == 2 and (
+                (piece.is_king) or
+                (piece.color == PIECE_BLACK and row_diff == 2) or
+                (piece.color == PIECE_RED and row_diff == -2)
             ):
                 return True
 
@@ -344,7 +348,7 @@ class Board:
         Returns:
             A set of Coordinates representing the valid jumps possible with the piece
         """
-        valid_jump_moves: set[Coordinate] = set()
+        jump_moves: set[Coordinate] = set()
         jump_directions = []
 
         if piece.color == PIECE_BLACK or piece.is_king:
@@ -357,9 +361,9 @@ class Board:
         for row_diff, col_diff in jump_directions:
             jump_destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
             if self._is_valid_move(piece, jump_destination):
-                valid_jump_moves.add(jump_destination)
+                jump_moves.add(jump_destination)
 
-        return valid_jump_moves
+        return jump_moves
 
 
     def find_adjacent_moves(self, piece: Piece) -> set[Coordinate]:
@@ -374,8 +378,6 @@ class Board:
         """
         directions = []
 
-        # Populate directions with movement options that are valid for the given piece
-        # based on its color and king status.
         if piece.color == PIECE_BLACK or piece.is_king:
             directions.append((1, -1))  # down-left
             directions.append((1, 1))   # down-right
@@ -384,8 +386,6 @@ class Board:
             directions.append((-1, 1))   # up-right
 
         adjacent_moves = set()
-        # With the directions for the given piece, check all of them and add the ones that
-        # are valid to the set.
         for row_diff, col_diff in directions:
             destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
             if self._is_valid_move(piece, destination):
@@ -433,6 +433,11 @@ class Board:
             A set of Pieces, each with valid moves available to it
         """
         pieces = set()
+        if color in [PIECE_BLACK, PIECE_RED]:
+            pass
+        else:
+            color = PIECE_BLACK if color == "BLACK" else PIECE_RED
+
 
         # See if there are any pieces on the board matching the passed in color
         # that have available jump moves

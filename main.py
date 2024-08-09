@@ -1,5 +1,6 @@
 import pygame
 from board import EMPTY, Board, Coordinate
+from ai_player import AI
 from constants import PIECE_BLACK
 from constants import PIECE_RED
 
@@ -40,9 +41,10 @@ def main():
     """Function where main game loop occurs. All classes come together in this function."""
     clock = pygame.time.Clock()
     game_board = Board()
+    ai = AI()
 
     # 1x per game
-    game_board.draw_grid(WINDOW)
+    game_board.draw_checkerboard(WINDOW)
     game_board.place_starting_pieces()
 
     running = True
@@ -56,6 +58,13 @@ def main():
             running = False
             winner = "BLACK" if game_board.winner() == "B" else "RED"
             print(f"The game is over! The winner is {winner}")
+
+        if game_board.current_turn == "RED":
+            ai_piece, ai_destination = ai.minimax(game_board)
+            print(f"{ai_piece} to {ai_destination}")
+            game_board.move(ai_piece, ai_destination)
+            print("Done with AI turn")
+            switch_player(game_board.current_turn, game_board)
 
         for event in pygame.event.get():
             # Close button was pressed in top corner
@@ -95,21 +104,23 @@ def main():
                 if game_board.selected_piece is not EMPTY:
                     start = Coordinate(game_board.selected_piece.row, game_board.selected_piece.col)
                     if game_board.move(game_board.selected_piece, mouse_coords):
-                        # Check if the move was a jump
                         row_diff = mouse_coords.row - start.row
                         col_diff = mouse_coords.col - start.col
-                        if abs(row_diff) == 2 and abs(col_diff) == 2:
-                            # Handle multiple jumps
-                            while True:
-                                possible_jump_moves = game_board.all_single_jumps(game_board.selected_piece)
-                                if possible_jump_moves:
-                                    game_board._valid_moves = possible_jump_moves
-                                else:
-                                    game_board.current_turn = switch_player(game_board.current_turn, game_board)
-                                break
-                        else:
-                            # Adjacent move, switch turn
+
+                        # The move is an adjacent move
+                        if not (abs(row_diff) and abs(col_diff) == 2):
                             game_board.current_turn = switch_player(game_board.current_turn, game_board)
+                            break
+
+                        # The move is a jump move so handle multiple jumps if they are possible
+                        while True:
+                            possible_jump_moves = game_board.all_single_jumps(game_board.selected_piece)
+                            if possible_jump_moves:
+                                game_board._valid_moves = possible_jump_moves
+                                break
+
+                            game_board.current_turn = switch_player(game_board.current_turn, game_board)
+                            break
 
         # Draw the board first and then the valid moves so that they properly show up on the board
         game_board.draw(WINDOW)

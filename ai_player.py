@@ -12,7 +12,7 @@ class AI:
         pass
 
 
-    def result(self, board_obj: Board, piece: Piece, destination: Coordinate) -> list[list[Piece]]:
+    def result(self, board_obj: Board, piece: Piece, destination: Coordinate) -> Board:
         """
         Return a temporary board that results from making action on the given board
 
@@ -27,7 +27,7 @@ class AI:
         board_obj_copy = deepcopy(board_obj)
 
         board_obj_copy.move(piece, destination)
-        return board_obj_copy._board
+        return board_obj_copy
 
 
     def winner(self, board_obj: Board) -> str | None:
@@ -42,13 +42,17 @@ class AI:
             return None
 
 
-    def player_turn(self, board_obj: Board) -> str:
+    def player(self, board_obj: Board) -> str:
+        """Return whose turn it is, either BLACK or RED"""
         return board_obj.current_turn
 
 
     def terminal(self, board_obj: Board) -> bool:
         """
-        Given a board object, return whether the game is over
+        Given a board object, return whether the game is over.
+
+        Returns:
+            True if the game is over, False if it is not.
         """
         return board_obj.is_game_over()
 
@@ -67,11 +71,10 @@ class AI:
         return board_obj.all_valid_moves(piece)
 
 
-    # BLACK - Maximizing player
-    # red - minimizing player
-    def utility(self, board_obj: Board) -> int:
+    def evaluate(self, board_obj: Board) -> int:
         """
-        Assign a value to each game state.
+        Assign a value to each game state based on the idea that BLACK is the maximizer
+        and RED is the minimizer.
 
         Returns:
             An integer representing the game state's utility/value.
@@ -85,74 +88,87 @@ class AI:
         return black_utility + red_utility
 
 
+
     def minimax(self, board_obj: Board) -> Coordinate:
         if self.terminal(board_obj):
             return None
 
         best_move = None
-        match self.player_turn(board_obj):
+        best_piece = None
+
+        def max_value(board_obj, alpha: int, beta: int) -> int:
+            """
+            Find the largest value of a game state with alpha beta pruning.
+
+            Args:
+                alpha (int): the best value so far along the game tree for the maximizing player 
+                beta (int): the best value so far along the game tree for the minimizing player
+            """
+            if self.terminal(board_obj):
+                return self.evaluate(board_obj)
+
+            # Initialize with the worst case value to the maximizer so we always do better
+            # with the first move so the algorithm can progress
+            val = float("-inf")
+
+            for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
+                for move in self.moves(board_obj, piece):
+                    val = max(val, min_value(self.result(board_obj, piece, move), alpha, beta))
+                    if val >= beta:
+                        return val
+                    alpha = max(alpha, val)
+            return val
+
+        def min_value(board_obj, alpha, beta) -> int:
+            """
+            Find the smallest value of a game state with alpha beta pruning.
+
+            Args:
+                alpha (int): the best value so far along the game tree for the maximizing player 
+                beta (int): the best value so far along the game tree for the minimizing player
+            """
+            if self.terminal(board_obj):
+                return self.evaluate(board_obj)
+
+            # Initialize with the worst case value to the minimizer so we always do better
+            # with the first move so the algorithm can progress
+            v = float("inf")
+
+            for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
+                for move in self.moves(board_obj, piece):
+                    v = min(v, max_value(self.result(board_obj, piece, move), alpha, beta))
+                    if v <= alpha:
+                        return v
+                    beta = min(beta, v)
+            return v
+
+        match self.player(board_obj):
             # Maximizer
             case "BLACK":
                 best_val = float("-inf")
-                for piece in board_obj.pieces_with_valid_moves(self.player_turn(board_obj)):
+                alpha = float("-inf")
+                beta = float("inf")
+                for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
                     for move in self.moves(board_obj, piece):
-                        val = self.__min_value(self.result(board_obj, piece, move))
-                        if val > best_val:
+                        val = min_value(self.result(board_obj, piece, move), alpha, beta)
+                        if val > best_val and piece is not EMPTY:
                             best_val = val
                             best_move = move
+                            best_piece = piece
+                        alpha = max(alpha, best_val)
 
             # Minimizer
             case "RED":
                 best_val = float("inf")
-                for piece in board_obj.pieces_with_valid_moves(self.player_turn(board_obj)):
+                alpha = float("-inf")
+                beta = float("inf")
+                for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
                     for move in self.moves(board_obj, piece):
-                        val = self.__max_value(self.result(board_obj, piece, move))
-                        if val < best_val:
+                        val = max_value(self.result(board_obj, piece, move), alpha, beta)
+                        if val < best_val and piece is not EMPTY:
                             best_val = val
                             best_move = move
+                            best_piece = piece
+                        beta = min(beta, best_val)
 
-        return best_move
-
-
-
-    def __max_value(self, board_obj: Board) -> int:
-        """Helper function to be used with the BLACK player in minimax"""
-        if self.terminal(board_obj):
-            return self.utility(board_obj)
-
-        # Since BLACK is the maximizing player, we want to initialize the value to be the smallest
-        # possible number since we are trying to get the largest number possible
-        val = float("-inf")
-
-
-        # Go through each piece on the board with the current color and see
-        for piece in board_obj.pieces_with_valid_moves(self.player_turn(board_obj)):
-
-            # What is the best possible move that will result in the highest possible utility value
-            for move in self.moves(board_obj, piece):
-
-                # given that the minimizing player is playing optimally?
-                # Hence, MAX(current_val, min_value(resulting_board))
-                val = max(val, self.__min_value(self.result(board_obj, piece, move)))
-        return val
-
-
-    def __min_value(self, board_obj: Board) -> int:
-        """Helper function to be used with the RED player in minimax"""
-        if self.terminal(board_obj):
-            return self.utility(board_obj)
-
-        # Since RED is the minimizing player, we want to initialize the value to be the largest
-        # possible number since we are trying to get the smallest number possible
-        val = float("inf")
-
-        # Go through each piece on the board with the current color and see
-        for piece in board_obj.pieces_with_valid_moves(self.player_turn(board_obj)):
-
-            # What is the best possible move that will result in the highest possible utility value
-            for move in self.moves(board_obj, piece):
-
-                # given that the minimizing player is playing optimally?
-                # Hence, MIN(current_val, max_value(resulting_board))
-                val = min(val, self.__max_value(self.result(board_obj, piece, move)))
-        return val
+        return (best_piece, best_move)
