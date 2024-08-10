@@ -12,91 +12,59 @@ class AI:
         pass
 
 
-    def result(self, board_obj: Board, piece: Piece, destination: Coordinate) -> Board:
+    def __result(self, game_state: Board, piece: Piece, destination: Coordinate) -> Board:
         """
         Return a temporary board that results from making action on the given board
 
         Args:
-            board_obj (Board): the board object the game is played with
+            game_state (Board): the board object the game is played with
             piece (Piece): the piece to move
             destination (Coordinate): where the piece should be moved to
 
         Returns:
-            The temporary board resulting from making move on the given board 
+            The temporary board __resulting from making move on the given board. The original board
+            is not altered.
         """
         # We don't want to alter any part of the given board so we copy the board and piece
         # since move() changes both of them
-        board_obj_copy = deepcopy(board_obj)
+        game_state_copy = deepcopy(game_state)
         piece_copy = deepcopy(piece)
 
-        board_obj_copy.move(piece_copy, destination)
-        board_obj_copy.switch_player()
-        return board_obj_copy
+        game_state_copy.move(piece_copy, destination)
+        game_state_copy.switch_player()
+        return game_state_copy
 
 
-    def winner(self, board_obj: Board) -> str | None:
+    def __evaluate(self, game_state: Board) -> int:
         """
-        Given a board object, return the winner of the game
-
-        Returns:
-            "BLACK" if Black won, "RED" if Red won, None otherwise
-        """
-        if board_obj.black_pieces_left == 0:
-            return RED
-        if board_obj.red_pieces_left == 0:
-            return BLACK
-        return None
-
-
-    def player(self, board_obj: Board) -> str:
-        """Return whose turn it is, either 'BLACK' or 'RED'"""
-        return board_obj.current_turn
-
-
-    def terminal(self, board_obj: Board) -> bool:
-        """
-        Given a board object, return whether the game is over.
-
-        Returns:
-            True if the game is over, False if it is not.
-        """
-        return board_obj.is_game_over()
-
-
-    def moves(self, board_obj: Board, piece: Piece) -> set[Coordinate]:
-        """
-        Return a set of all possible moves available on the board for the given piece
-
-        Args:
-            board_obj (Board): the board object the game is played with
-            piece (Piece): the piece to get moves for
-
-        Returns:
-            A set of Coordinates representing all possible moves for the given piece on the board 
-        """
-        return board_obj.get_valid_moves(piece)
-
-
-    def evaluate(self, board_obj: Board) -> int:
-        """
-        Assign a value to each game state based on the idea that BLACK is the maximizer
-        and RED is the minimizer.
+        Assign a value to each game state based on the idea that Black is the maximizer and RED
+        is the minimizer. A value greater than 0 favors Black while a value less than 0 favors RED.
+        0 means that neither Black nor Red has the advantage.
 
         Returns:
             An integer representing the game state's utility/value.
         """
         # A king will be worth 3 while a regular piece will be worth 1
-        black_utility = board_obj.black_regular_left + (3 * board_obj.black_kings_left)
+        black_utility = game_state.black_regular_left + (3 * game_state.black_kings_left)
 
         # since RED is the minimizing player, have its utility be negative
-        red_utility = -1 * (board_obj.red_regular_left + (3 * board_obj.red_kings_left))
+        red_utility = -1 * (game_state.red_regular_left + (3 * game_state.red_kings_left))
 
         return black_utility + red_utility
 
 
+    def minimax(self, game_state: Board) -> tuple[Piece, Coordinate]:
+        """
+        Given a Board, return the best possible move for the AI player
 
-    def minimax(self, board_obj: Board) -> Coordinate:
-        if self.terminal(board_obj):
+        Args:
+            game_state (Board): the Board object the game is being played on
+
+        Returns:
+            A tuple consisting of the piece to move and where that piece should be moved
+            in that order.
+        """
+        if game_state.is_game_over():
             return None
 
         # Keep track of the best move that can be made and which piece can make that move
@@ -111,18 +79,21 @@ class AI:
         # 6 moves ahead takes slightly longer
         # Anything above 8 is impractical (and not fun) to wait for
         look_moves_ahead = 5
-        match self.player(board_obj):
+        match game_state.current_turn:
             # Maximizer
             case "BLACK":
                 best_val = float("-inf")
-                for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
-                    for move in self.moves(board_obj, piece):
-                        val = self.min_value(
-                            self.result(board_obj, piece, move),
+
+                for piece in game_state.pieces_with_valid_moves(color=game_state.current_turn):
+                    for move in game_state.get_valid_moves(piece):
+                        val = self.__min_value(
+                            self.__result(game_state, piece, move),
                             alpha,
                             beta,
                             depth=look_moves_ahead
                         )
+
+                        # Store the best action available so far
                         if val > best_val:
                             best_val = val
                             best_move = move
@@ -133,24 +104,27 @@ class AI:
             # Minimizer
             case "RED":
                 best_val = float("inf")
-                for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
-                    for move in self.moves(board_obj, piece):
-                        val = self.max_value(
-                            self.result(board_obj, piece, move),
+                for piece in game_state.pieces_with_valid_moves(color=game_state.current_turn):
+                    for move in game_state.get_valid_moves(piece):
+                        val = self.__max_value(
+                            self.__result(game_state, piece, move),
                             alpha,
                             beta,
                             depth=look_moves_ahead
                         )
+
+                        # Store the best action available so far
                         if val < best_val:
                             best_val = val
                             best_move = move
                             best_piece = piece
+
                         beta = min(beta, best_val)
 
         return (best_piece, best_move)
 
 
-    def min_value(self, board_obj, alpha: int, beta: int, depth: int) -> int:
+    def __min_value(self, game_state, alpha: int, beta: int, depth: int) -> int:
         """
         Find the smallest value of a game state with alpha beta pruning.
         Helper function for minimax()
@@ -159,19 +133,19 @@ class AI:
             alpha (int): the best value so far along the game tree for the maximizing player 
             beta (int): the best value so far along the game tree for the minimizing player
         """
-        if self.terminal(board_obj) or depth == 0:
-            return self.evaluate(board_obj)
+        if game_state.is_game_over() or depth == 0:
+            return self.__evaluate(game_state)
 
         # Initialize with the worst case value to the minimizer so we always do better
         # with the first move so the algorithm can progress
         min_val = float("inf")
 
-        for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
-            for move in self.moves(board_obj, piece):
+        for piece in game_state.pieces_with_valid_moves(game_state.current_turn):
+            for move in game_state.get_valid_moves(piece):
                 min_val = min(
                     min_val,
-                    self.max_value(
-                        self.result(board_obj, piece, move),
+                    self.__max_value(
+                        self.__result(game_state, piece, move),
                         alpha,
                         beta,
                         depth - 1
@@ -182,10 +156,11 @@ class AI:
                 beta = min(beta, min_val)
                 if beta <= alpha:
                     break
+
         return min_val
 
 
-    def max_value(self, board_obj, alpha: int, beta: int, depth: int) -> int:
+    def __max_value(self, game_state, alpha: int, beta: int, depth: int) -> int:
         """
         Find the largest value of a game state with alpha beta pruning.
         Helper function for minimax()
@@ -194,19 +169,19 @@ class AI:
             alpha (int): the best value so far along the game tree for the maximizing player 
             beta (int): the best value so far along the game tree for the minimizing player
         """
-        if self.terminal(board_obj) or depth == 0:
-            return self.evaluate(board_obj)
+        if game_state.is_game_over() or depth == 0:
+            return self.__evaluate(game_state)
 
         # Initialize with the worst case value to the maximizer so we always do better
         # with the first move so the algorithm can progress
         max_val = float("-inf")
 
-        for piece in board_obj.pieces_with_valid_moves(self.player(board_obj)):
-            for move in self.moves(board_obj, piece):
+        for piece in game_state.pieces_with_valid_moves(game_state.current_turn):
+            for move in game_state.get_valid_moves(piece):
                 max_val = max(
                     max_val,
-                    self.min_value(
-                       self.result(board_obj, piece, move),
+                    self.__min_value(
+                        self.__result(game_state, piece, move),
                         alpha,
                         beta,
                         depth - 1
@@ -217,4 +192,6 @@ class AI:
                 alpha = max(alpha, max_val)
                 if beta <= alpha:
                     break
+
         return max_val
+
