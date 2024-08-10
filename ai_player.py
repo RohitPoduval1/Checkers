@@ -12,47 +12,6 @@ class AI:
         pass
 
 
-    def __result(self, game_state: Board, piece: Piece, destination: Coordinate) -> Board:
-        """
-        Return a temporary board that results from making action on the given board
-
-        Args:
-            game_state (Board): the board object the game is played with
-            piece (Piece): the piece to move
-            destination (Coordinate): where the piece should be moved to
-
-        Returns:
-            The temporary board __resulting from making move on the given board. The original board
-            is not altered.
-        """
-        # We don't want to alter any part of the given board so we copy the board and piece
-        # since move() changes both of them
-        game_state_copy = deepcopy(game_state)
-        piece_copy = deepcopy(piece)
-
-        game_state_copy.move(piece_copy, destination)
-        game_state_copy.switch_player()
-        return game_state_copy
-
-
-    def __evaluate(self, game_state: Board) -> int:
-        """
-        Assign a value to each game state based on the idea that Black is the maximizer and RED
-        is the minimizer. A value greater than 0 favors Black while a value less than 0 favors RED.
-        0 means that neither Black nor Red has the advantage.
-
-        Returns:
-            An integer representing the game state's utility/value.
-        """
-        # A king will be worth 3 while a regular piece will be worth 1
-        black_utility = game_state.black_regular_left + (3 * game_state.black_kings_left)
-
-        # since RED is the minimizing player, have its utility be negative
-        red_utility = -1 * (game_state.red_regular_left + (3 * game_state.red_kings_left))
-
-        return black_utility + red_utility
-
-
     def minimax(self, game_state: Board) -> tuple[Piece, Coordinate]:
         """
         Given a Board, return the best possible move for the AI player
@@ -194,4 +153,45 @@ class AI:
                     break
 
         return max_val
+
+
+    def __result(self, game_state: Board, piece: Piece, destination: Coordinate) -> Board:
+        """
+        Return a temporary board that results from making action on the given board
+
+        Args:
+            game_state (Board): the board object the game is played with
+            piece (Piece): the piece to move
+            destination (Coordinate): where the piece should be moved to
+
+        Returns:
+            The temporary board __resulting from making move on the given board. The original board
+            is not altered.
+        """
+        # We don't want to alter any part of the given board so we copy the board and piece
+        # since move() changes both of them
+        game_state_copy = deepcopy(game_state)
+        piece_copy = deepcopy(piece)
+
+        game_state_copy.move(piece_copy, destination)
+        game_state_copy.switch_player()
+        return game_state_copy
+
+
+    def __evaluate(self, game_state: Board) -> int:
+        """
+        Assign a value to each game state based on the idea that Black is the maximizer and RED
+        is the minimizer. A value greater than 0 favors Black while a value less than 0 favors RED.
+        0 means that neither Black nor Red has the advantage.
+
+        Returns:
+            An integer representing the game state's utility/value.
+        """
+        # A king will be worth 3 while a regular piece will be worth 1
+        black_utility = game_state.black_regular_left + (3 * game_state.black_kings_left)
+
+        # since RED is the minimizing player, have its utility be negative
+        red_utility = -1 * (game_state.red_regular_left + (3 * game_state.red_kings_left))
+
+        return black_utility + red_utility
 
