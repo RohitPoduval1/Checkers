@@ -258,11 +258,10 @@ class Board:
         # update that piece's position with the new row and column
         piece.row, piece.col = destination.row, destination.col
 
-        # update the board to reflect the piece's new position
         self.set_board_at(destination, piece)
 
-        if piece.king():  # if the piece is a newly made king
-            # Update the number of pieces left
+        # If the piece is a newly made king, update the number of pieces left
+        if piece.king():
             if piece.color == PIECE_BLACK:
                 self.black_regular_left -= 1
                 self.black_kings_left += 1
@@ -273,33 +272,6 @@ class Board:
         self.red_pieces_left = self.red_regular_left + self.red_kings_left
 
         return True
-
-
-    def perform_multiple_jumps(self, piece: Piece) -> None:
-        """
-        Handles the logic for performing multiple jumps for a piece.
-        
-        Args:
-            piece (Piece): The piece that might perform multiple jumps.
-        """
-        while True:
-            single_jump_moves = self.get_single_jumps(piece)
-
-            if not single_jump_moves:
-                break
-
-            self._valid_moves = single_jump_moves
-
-            if len(single_jump_moves) == 1:
-                jump_move = single_jump_moves.pop()
-                self.move(piece, jump_move)
-            else:
-                # If multiple jumps are possible, decide how to handle it
-                # This could involve prompting the user, but since we want to avoid
-                # interaction here, we'll just pick the first available jump.
-                # This logic can be expanded based on your AI or player input.
-                jump_move = next(iter(single_jump_moves))
-                self.move(piece, jump_move)
 
 
     def __is_valid_move(self, piece: Piece, destination: Coordinate) -> bool:
@@ -324,14 +296,12 @@ class Board:
         ):
             return False
 
-        # ADJACENT MOVEMENT
-        row_diff = destination.row - start.row
-        col_diff = destination.col - start.col
-
         if self.get_move_type(piece, destination) == "ADJACENT":
             return True
 
-        # JUMPING MOVEMENT
+        # Jumping Movement
+        row_diff = destination.row - start.row
+        col_diff = destination.col - start.col
         middle_row = start.row + row_diff // 2
         middle_col = start.col + col_diff // 2
         middle_piece = self.get_piece(Coordinate(middle_row, middle_col))
@@ -347,6 +317,18 @@ class Board:
 
 
     def get_move_type(self, piece: Piece, destination: Coordinate) -> str | None:
+        """
+        Given a Piece and its destination, return whether that move is an
+        adjacent move, jump move, or none.
+
+        Args:
+            piece (Piece): the piece making the potential move
+            destination (Coordinate): where the piece is moving to
+
+        Returns:
+            'ADJACENT' if the move is an adjacent move or 'JUMP' if the move jumps a piece.
+            Otherwise, return None.
+        """
         row_diff, col_diff = destination.row - piece.row, destination.col - piece.col
 
         # row_diff must be positive for black since it moves down and negative for red since it
@@ -497,8 +479,10 @@ class Board:
 
 
     def switch_player(self) -> None:
+        """Switch whose turn it is. 'BLACK' becomes 'RED' and vice versa."""
         self.selected_piece = EMPTY
         self.reset_valid_moves()
+
         if self.current_turn == "BLACK":
             self.current_turn = "RED"
         else:
@@ -510,4 +494,4 @@ class Board:
 
     def winner(self) -> str:
         """Return the winner of the game, 'B' for black or 'R' for red"""
-        return "B" if self.red_pieces_left == 0 else "R"
+        return "BLACK" if self.red_pieces_left == 0 else "RED"
