@@ -90,8 +90,7 @@ class Piece:
         return False
 
     def draw(self, window: pygame.Surface) -> None:
-        """Draws the piece on the specified window"""
-        # TODO: Draw a different image for a kinged piece
+        """Draws the piece on the specified window. If the piece is a king, draw a crown for it"""
         pygame.draw.circle(
             surface=window,
             color=self._COLOR,
@@ -101,3 +100,14 @@ class Piece:
             ),
             radius=Piece.RADIUS
         )
+        if self.is_king:
+            crown_image = pygame.image.load("assets/crown.png")
+
+            # Draw the crown in the center of the piece
+            crown_image_rect = pygame.Rect(
+                (self.col*GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE) - (crown_image.get_width() // 2),
+                (self.row*GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE) - (crown_image.get_height() // 2),
+                crown_image.get_width(),
+                crown_image.get_height()
+            )
+            window.blit(crown_image, crown_image_rect)
