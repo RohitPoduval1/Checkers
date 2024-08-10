@@ -8,10 +8,6 @@ RED = "RED"
 
 
 class AI:
-    def __init__(self) -> None:
-        pass
-
-
     def minimax(self, game_state: Board) -> tuple[Piece, Coordinate]:
         """
         Given a Board, return the best possible move for the AI player
