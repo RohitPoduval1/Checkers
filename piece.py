@@ -1,5 +1,5 @@
 import pygame 
-from constants import GRID_BOX_SIZE, PIECE_BLACK, PIECE_RED
+from constants import SQUARE_SIZE, PIECE_BLACK, PIECE_RED
 from coordinate import Coordinate
 
 class Piece:
@@ -22,10 +22,10 @@ class Piece:
             c (int): the column that the piece should be placed in
             color: which side the piece is, either red or black
         """
-        self._row = r
-        self._col = c
-        self._is_king = False
-        self._COLOR = color
+        self.__row = r
+        self.__col = c
+        self.__is_king = False
+        self.__COLOR = color
 
     def __eq__(self, other_piece) -> bool:
         return (
@@ -47,34 +47,34 @@ class Piece:
     @property
     def row(self) -> int:
         """Getter for row attribute"""
-        return self._row
+        return self.__row
 
     @property
     def col(self) -> int:
         """Getter for col attribute"""
-        return self._col
+        return self.__col
 
     @property
     def is_king(self) -> bool:
         """Getter for is_king attribute"""
-        return self._is_king
+        return self.__is_king
 
     @property
     def color(self):
         """Getter for COLOR attribute"""
-        return self._COLOR
+        return self.__COLOR
 
     @row.setter
     def row(self, r: int) -> None:
-        self._row = r
+        self.__row = r
 
     @col.setter
     def col(self, c: int) -> None:
-        self._col = c
+        self.__col = c
 
     @is_king.setter
     def is_king(self, k):
-        self._is_king = k
+        self.__is_king = k
 
     def king(self) -> bool:
         """
@@ -85,18 +85,18 @@ class Piece:
             met or the piece is already a king.
         """
         if ((self.color == PIECE_BLACK and self.row == 7) or (self.color == PIECE_RED and self.row == 0)) and not self.is_king:
-            self._is_king = True
-            return self._is_king
+            self.__is_king = True
+            return self.__is_king
         return False
 
     def draw(self, window: pygame.Surface) -> None:
         """Draws the piece on the specified window. If the piece is a king, draw a crown for it"""
         pygame.draw.circle(
             surface=window,
-            color=self._COLOR,
+            color=self.__COLOR,
             center=(
-                self._col * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE,  # use col to find x coord
-                self._row * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE   # use row to find y coord
+                self.__col * SQUARE_SIZE + 0.5*SQUARE_SIZE,  # use col to find x coord
+                self.__row * SQUARE_SIZE + 0.5*SQUARE_SIZE   # use row to find y coord
             ),
             radius=Piece.RADIUS
         )
@@ -105,8 +105,8 @@ class Piece:
 
             # Draw the crown in the center of the piece
             crown_image_rect = pygame.Rect(
-                (self.col*GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE) - (crown_image.get_width() // 2),
-                (self.row*GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE) - (crown_image.get_height() // 2),
+                (self.col*SQUARE_SIZE + 0.5*SQUARE_SIZE) - (crown_image.get_width() // 2),
+                (self.row*SQUARE_SIZE + 0.5*SQUARE_SIZE) - (crown_image.get_height() // 2),
                 crown_image.get_width(),
                 crown_image.get_height()
             )

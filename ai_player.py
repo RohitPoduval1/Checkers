@@ -1,10 +1,7 @@
-from copy import deepcopy
+from copy import deepcopy  # for making temporary copies of Boards and Pieces 
 from board import Board
 from piece import Piece
 from coordinate import Coordinate
-
-BLACK = "BLACK"
-RED = "RED"
 
 
 class AI:

@@ -1,5 +1,6 @@
 import pygame
-from constants import GRID_BOX_SIZE, BOARD_RED, BOARD_BLACK, PIECE_RED, PIECE_BLACK
+from constants import BOARD_RED, BOARD_BLACK, PIECE_RED, PIECE_BLACK
+from constants import SQUARE_SIZE, DIMENSIONS
 from piece import Piece
 from coordinate import Coordinate
 
@@ -15,9 +16,8 @@ class Board:
         board: a 2D array of Pieces used as a simplified representation of the board.
     """
     def __init__(self):
-        self.SIZE = 8
-        self._board = [[EMPTY for _ in range(self.SIZE)] for _ in range(self.SIZE)]
-        self._selected_piece: Piece = EMPTY
+        self._board = [[EMPTY for _ in range(DIMENSIONS)] for _ in range(DIMENSIONS)]
+        self.__selected_piece: Piece = EMPTY
         self._valid_moves: set[Coordinate] = set()
 
         self.black_regular_left = 12
@@ -32,9 +32,9 @@ class Board:
 
 
     def __str__(self) -> str:
-        board_with_strings = [[" " for _ in range(self.SIZE)] for _ in range(self.SIZE)]
-        for row in range(self.SIZE):
-            for col in range(self.SIZE):
+        board_with_strings = [[" " for _ in range(DIMENSIONS)] for _ in range(DIMENSIONS)]
+        for row in range(DIMENSIONS):
+            for col in range(DIMENSIONS):
                 curr_piece = self.get_piece(Coordinate(row, col))
                 piece_as_string = ""
                 if curr_piece.color == PIECE_RED:
@@ -58,11 +58,11 @@ class Board:
     @property
     def selected_piece(self):
         """Getter for selected_piece attribute"""
-        return self._selected_piece
+        return self.__selected_piece
 
     @selected_piece.setter
     def selected_piece(self, piece):
-        self._selected_piece = piece
+        self.__selected_piece = piece
 
 
     @property
@@ -82,7 +82,7 @@ class Board:
         Args:
             coord (Coordinate): the location on the board to select
         """
-        self._selected_piece = self.get_piece(coord)
+        self.__selected_piece = self.get_piece(coord)
 
 
     def reset_valid_moves(self) -> None:
@@ -105,13 +105,7 @@ class Board:
 
 
     def set_board_at(self, coord: Coordinate, piece: Piece) -> None:
-        """
-        Sets board at the given coordinates to piece
-
-        Args:
-            coord (Coordinate): coordinates of the board to change
-            piece (Piece): the piece to set the board to 
-        """
+        """Sets board at the given coordinates to piece"""
         self._board[coord.row][coord.col] = piece
 
 
@@ -119,55 +113,45 @@ class Board:
         """Internally populates an empty board with the starting positions of the pieces"""
         # Draw the black pieces at the top of the board (the first 3 rows)
         for row in range(3):
-            for col in range(self.SIZE):
+            for col in range(DIMENSIONS):
                 if (row + col) % 2 == 1:  # place on alternating squares
                     self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_BLACK))
 
         # Draw the red pieces at the bottom of the board (the last 3 rows)
-        for row in range(self.SIZE - 3, self.SIZE):
-            for col in range(self.SIZE):
+        for row in range(DIMENSIONS - 3, DIMENSIONS):
+            for col in range(DIMENSIONS):
                 if (row + col) % 2 == 1:  # place on alternating squares
                     self.set_board_at(Coordinate(row, col), Piece(row, col, PIECE_RED))
 
 
     def draw_checkerboard(self, window: pygame.Surface) -> None:
-        """
-        Draws a black and red checkerboard on the given window.
-        
-        Args:
-            window (pygame.Surface): the window to draw the grid on
-        """
+        """Draw a black and red checkerboard on the given window."""
         window.fill(BOARD_BLACK)
 
         # Draw alternating red squares on the black board to make a checkerboard
-        for r in range(self.SIZE):
-            for c in range(r % 2, self.SIZE, 2):
+        for r in range(DIMENSIONS):
+            for c in range(r % 2, DIMENSIONS, 2):
                 pygame.draw.rect(
                     surface=window,
                     color=BOARD_RED,
                     rect=(
-                        r * GRID_BOX_SIZE,  # left
-                        c * GRID_BOX_SIZE,  # top
-                        GRID_BOX_SIZE,      # width
-                        GRID_BOX_SIZE       # height
+                        r * SQUARE_SIZE,  # left
+                        c * SQUARE_SIZE,  # top
+                        SQUARE_SIZE,      # width
+                        SQUARE_SIZE       # height
                     )
                 )
 
 
     def draw(self, window: pygame.Surface) -> None:
-        """
-        Draw the current board
-        
-        Args:
-            window (pygame.Surface): the window to draw the grid on
-        """
+        """Draw the current board on the given window"""
 
         # Get rid of existing drawings by drawing the checkerboard on top,
-        # effectively giving us a clean slate to work with
+        # effectively giving us a clean slate to work with.
         self.draw_checkerboard(window)
 
-        for row in range(self.SIZE):
-            for col in range(self.SIZE):
+        for row in range(DIMENSIONS):
+            for col in range(DIMENSIONS):
                 piece = self.get_piece(Coordinate(row, col))
                 if self.selected_piece is not EMPTY and piece is self.selected_piece:
                     self.__highlight_selected_piece_tile(window)
@@ -175,43 +159,18 @@ class Board:
                     piece.draw(window)
 
 
-    def __highlight_selected_piece_tile(self, window: pygame.Surface) -> None:
-        """
-        Draw a yellow tile under the selected piece
-
-        Args:
-            window (pygame.Surface): the window to draw the grid on
-        """
-        HIGHLIGHT_SQUARE_SIZE = GRID_BOX_SIZE * 0.8  # make it 80% the original size of the square
-
-        # Draw the highlight box in the center of the tile that the selected_piece is in
-        pygame.draw.rect(
-            surface=window,
-            color=(255, 223, 0),
-            rect=(
-                self.selected_piece.col*GRID_BOX_SIZE + (GRID_BOX_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
-                self.selected_piece.row*GRID_BOX_SIZE + (GRID_BOX_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
-                HIGHLIGHT_SQUARE_SIZE,
-                HIGHLIGHT_SQUARE_SIZE
-            )
-        )
 
 
     def draw_valid_moves(self, window: pygame.Surface) -> None:
-        """
-        Draw a green circle on the board at each valid move to show it is valid.
-
-        Args:
-            window (pygame.Surface): the window to draw the grid on
-        """
+        """Draw a green circle on the board at each valid move to show it is valid."""
         if self.selected_piece is not EMPTY:
             for valid_move in self._valid_moves:
                 pygame.draw.circle(
                     surface=window,
                     color=(0, 240, 0),
                     center=(
-                        valid_move.col * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE,
-                        valid_move.row * GRID_BOX_SIZE + 0.5*GRID_BOX_SIZE
+                        valid_move.col * SQUARE_SIZE + 0.5*SQUARE_SIZE,
+                        valid_move.row * SQUARE_SIZE + 0.5*SQUARE_SIZE
                     ),
                     radius=15
                 )
@@ -272,48 +231,6 @@ class Board:
         self.red_pieces_left = self.red_regular_left + self.red_kings_left
 
         return True
-
-
-    def __is_valid_move(self, piece: Piece, destination: Coordinate) -> bool:
-        """
-        Check whether moving piece to destination is valid while doing necessary error checking.
-
-        Args:
-            piece (Piece): the piece to move
-            destination (Piece): the destination to valid
-
-        Return:
-            True if the move is valid, False otherwise
-        """
-        start = Coordinate(piece.row, piece.col)
-
-        if (
-            # the start or destination is not a valid coordinate
-            (not (start.is_in_bounds() and destination.is_in_bounds())) or
-
-            # there is no valid piece to move or the destination has a piece
-            (piece is EMPTY or self.get_piece(destination) is not EMPTY)
-        ):
-            return False
-
-        if self.get_move_type(piece, destination) == "ADJACENT":
-            return True
-
-        # Jumping Movement
-        row_diff = destination.row - start.row
-        col_diff = destination.col - start.col
-        middle_row = start.row + row_diff // 2
-        middle_col = start.col + col_diff // 2
-        middle_piece = self.get_piece(Coordinate(middle_row, middle_col))
-
-        if (
-            self.get_move_type(piece, destination) == "JUMP" and
-            middle_piece is not EMPTY and
-            middle_piece.color != piece.color
-        ):
-            return True
-
-        return False
 
 
     def get_move_type(self, piece: Piece, destination: Coordinate) -> str | None:
@@ -379,32 +296,6 @@ class Board:
         return jump_moves
 
 
-    def get_adjacent_moves(self, piece: Piece) -> set[Coordinate]:
-        """
-        Given a valid piece, return all possible adjacent moves
-    
-        Args:
-            piece (Piece): Must be a valid piece, meaning not EMPTY
-
-        Returns:
-            A set of Coordinates representing the valid adjacent moves possible with the piece
-        """
-        directions = []
-
-        if piece.color == PIECE_BLACK or piece.is_king:
-            directions.append((1, -1))  # down-left
-            directions.append((1, 1))   # down-right
-        if piece.color == PIECE_RED or piece.is_king:
-            directions.append((-1, -1))  # up-left
-            directions.append((-1, 1))   # up-right
-
-        adjacent_moves = set()
-        for row_diff, col_diff in directions:
-            destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
-            if self.__is_valid_move(piece, destination):
-                adjacent_moves.add(destination)
-
-        return adjacent_moves
 
 
     def get_valid_moves(self, piece: Piece) -> set[Coordinate]:
@@ -417,7 +308,7 @@ class Board:
         Returns:
             A set of Coordinates representing all valid moves possible with the piece
         """
-        adjacent_moves = self.get_adjacent_moves(piece)
+        adjacent_moves = self.__get_adjacent_moves(piece)
         jump_moves = self.get_single_jumps(piece)
 
         # if a jump is possible, it must be made
@@ -471,7 +362,7 @@ class Board:
                     piece = self.get_piece(Coordinate(r, c))
                     if (
                         piece is not EMPTY and
-                        len(self.get_adjacent_moves(piece)) > 0 and
+                        len(self.__get_adjacent_moves(piece)) > 0 and
                         piece.color == color
                     ):
                         pieces.add(piece)
@@ -490,8 +381,112 @@ class Board:
 
 
     def is_game_over(self) -> bool:
+        """
+        Determine whether the game is over.
+        
+        Returns:
+            True if the game is over and False if it is not.
+        """
         return self.black_pieces_left == 0 or self.red_pieces_left == 0
 
+
     def winner(self) -> str:
-        """Return the winner of the game, 'B' for black or 'R' for red"""
+        """
+        Determine the winner of the game if the game has already been determined to be over.
+
+        Returns:
+            'BLACK' if Black won the game, 'RED' otherwise.
+        """
         return "BLACK" if self.red_pieces_left == 0 else "RED"
+
+
+    def __is_valid_move(self, piece: Piece, destination: Coordinate) -> bool:
+        """
+        Check whether moving piece to destination is valid while doing necessary error checking.
+
+        Args:
+            piece (Piece): the piece to move
+            destination (Piece): the destination to valid
+
+        Return:
+            True if the move is valid, False otherwise
+        """
+        start = Coordinate(piece.row, piece.col)
+
+        if (
+            # the start or destination is not a valid coordinate
+            (not (start.is_in_bounds() and destination.is_in_bounds())) or
+
+            # there is no valid piece to move or the destination has a piece
+            (piece is EMPTY or self.get_piece(destination) is not EMPTY)
+        ):
+            return False
+
+        if self.get_move_type(piece, destination) == "ADJACENT":
+            return True
+
+        # Jumping Movement
+        row_diff = destination.row - start.row
+        col_diff = destination.col - start.col
+        middle_row = start.row + row_diff // 2
+        middle_col = start.col + col_diff // 2
+        middle_piece = self.get_piece(Coordinate(middle_row, middle_col))
+
+        if (
+            self.get_move_type(piece, destination) == "JUMP" and
+            middle_piece is not EMPTY and
+            middle_piece.color != piece.color
+        ):
+            return True
+
+        return False
+
+
+    def __highlight_selected_piece_tile(self, window: pygame.Surface) -> None:
+        """
+        Draw a yellow tile under the selected piece
+
+        Args:
+            window (pygame.Surface): the window to draw the grid on
+        """
+        HIGHLIGHT_SQUARE_SIZE = SQUARE_SIZE * 0.8  # make it 80% the original size of the square
+
+        # Draw the highlight box in the center of the square that the selected_piece is in
+        pygame.draw.rect(
+            surface=window,
+            color=(255, 223, 0),
+            rect=(
+                self.selected_piece.col*SQUARE_SIZE + (SQUARE_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
+                self.selected_piece.row*SQUARE_SIZE + (SQUARE_SIZE - HIGHLIGHT_SQUARE_SIZE)/2,
+                HIGHLIGHT_SQUARE_SIZE,
+                HIGHLIGHT_SQUARE_SIZE
+            )
+        )
+
+
+    def __get_adjacent_moves(self, piece: Piece) -> set[Coordinate]:
+        """
+        Given a valid piece, return all possible adjacent moves
+    
+        Args:
+            piece (Piece): Must be a valid piece, meaning not EMPTY
+
+        Returns:
+            A set of Coordinates representing the valid adjacent moves possible with the piece
+        """
+        directions = []
+
+        if piece.color == PIECE_BLACK or piece.is_king:
+            directions.append((1, -1))  # down-left
+            directions.append((1, 1))   # down-right
+        if piece.color == PIECE_RED or piece.is_king:
+            directions.append((-1, -1))  # up-left
+            directions.append((-1, 1))   # up-right
+
+        adjacent_moves = set()
+        for row_diff, col_diff in directions:
+            destination = Coordinate(piece.row + row_diff, piece.col + col_diff)
+            if self.__is_valid_move(piece, destination):
+                adjacent_moves.add(destination)
+
+        return adjacent_moves

@@ -1,3 +1,6 @@
+from constants import DIMENSIONS
+
+
 class Coordinate:
     """
     A clean, concise way of representing a coordinate pair consisting of (row, column)
@@ -42,11 +45,10 @@ class Coordinate:
     def col(self, c):
         self._col = c
 
-
     def is_in_bounds(self):
         """Check whether the coordinates are in the bounds of the board"""
         # TODO: Get rid of hardcoded 8 and replace with board.SIZE
         return (
-            0 <= self._row < 8 and
-            0 <= self._col < 8
+            0 <= self._row < DIMENSIONS and
+            0 <= self._col < DIMENSIONS
         )

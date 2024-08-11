@@ -1,4 +1,3 @@
-from time import sleep
 import pygame
 from board import EMPTY, Board, Coordinate
 from constants import PIECE_BLACK, PIECE_RED
