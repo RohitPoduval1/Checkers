@@ -1,12 +1,11 @@
 # 🔴 Checkers Champion ⚫️
 
 ## How To Play
-___
 ### Turns
 * The darker color moves first. In this case, the player is Black and the AI opponent is Red.
 This means the player moves first.
 * Moving a piece one square diagonally (referred to as adjacent movement) constitutes a turn and the other player would then make a move
-* A single jump counts as a turn---multiple consecutive jumps also count as a single turn and are a vital part in winning.
+* A single jump counts as a turn––multiple consecutive jumps also count as a single turn and are a vital part in winning.
 
 ### Movement
 * Pieces can only move diagonally (either adjacent or jump)
@@ -19,7 +18,6 @@ The game is over when Black or Red has no pieces left. Draws have not been imple
 
 
 ## 🧠 Minimax - The Brain Behind the Algorithm
-___
 ### What is Minimax?
 Minimax is an decision-making adversarial search algorithm best suited for 2 player turn-based games, such as Tic-Tac-Toe, Chess, or in this case, Checkers.
 
@@ -36,4 +34,3 @@ Minimax is an decision-making adversarial search algorithm best suited for 2 pla
 * Depth-Limited Minimax limits how many moves ahead the algorithm looks at. Instead of playing to a terminal state where the game is over, the algorithm will stop at say, 5 moves ahead and look at the game state. This is where the evaulation function comes in.
 * The evalution function takes in a game state and returns a number based on who the board favors, a positive number favoring the max player and a negative number favoring the min player. This determines how good the minimax algorithm is. For this implementation, a basic evaulation function was used, summing the pieces on the board, giving extra weight to those that are kings; however, a more complex evaluation function can be used to consider the position of the pieces on the board since center control is better.
 * Depth-Limited Minimax, since it does not search to the end of the game, is not guaranteed to make the most optimal move. 
-___
