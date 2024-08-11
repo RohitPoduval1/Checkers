@@ -323,12 +323,8 @@ class Board:
 
 
     def pieces_with_valid_moves(self, color) -> set[Piece]:
-        # TODO: Add to README detailed explanation on mandatory jumping
         """
         Return a set of Pieces of the specified color that have valid moves available to it.
-        This is important because the rules of checkers states that if there exists a piece on
-        the board with a jump available to it, it must make the jump. If multiple pieces exist
-        with jumps available, then the player can choose.
 
         Args:
             color: the color of the piece to search for valid moves, either PIECE_BLACK or PIECE_RED
