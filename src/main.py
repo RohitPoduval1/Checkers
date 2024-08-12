@@ -60,6 +60,7 @@ def main():
         if is_game_over:
             running = False
             print(f"The game is over! The winner is {game_board.winner()}")
+            break
 
         # AI Player
         if game_board.current_turn == AI_COLOR:
