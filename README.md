@@ -1,5 +1,7 @@
 # 🔴 Checkers Champion ⚫️
 
+<img width="600" alt="Checkers Champion Board" src="https://github.com/user-attachments/assets/864efb2a-a47a-400c-a86d-4b21a88833db">
+
 ## How To Play
 ### Turns
 * The darker color moves first. In this case, the player is Black and the AI opponent is Red.
