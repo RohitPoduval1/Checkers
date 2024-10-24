@@ -107,7 +107,7 @@ class Piece:
             radius=Piece.RADIUS
         )
         if self.is_king:
-            crown_image = pygame.image.load("assets/crown.png")
+            crown_image = pygame.image.load("../assets/crown.png")
 
             # Draw the crown in the center of the piece
             crown_image_rect = pygame.Rect(
